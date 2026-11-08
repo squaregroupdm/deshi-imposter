@@ -8,6 +8,15 @@
         "value": "montserrat",
         "createdAt": "2026-11-08T09:00:20.442Z",
         "reason": "user asked for a Kahoot-style UI; Montserrat is Kahoot's own face"
+      },
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          "table-template.html"
+        ],
+        "createdAt": "2026-11-08T09:22:11.549Z",
+        "reason": "the only pulses are the live countdown bar under 10 s and the typing-dots indicator shown while a player is actually writing; both reflect live game state"
       }
     ]
   }
