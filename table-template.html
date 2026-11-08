@@ -189,6 +189,11 @@ form.row input{flex:1;min-width:0;text-align:left}
 .invite .link{font-size:12px;color:var(--fg-2);word-break:break-all;user-select:all;background:rgba(0,0,0,.25);border-radius:10px;padding:8px 10px}
 .qr{background:#fff;padding:6px;border-radius:10px;display:inline-block;line-height:0;box-shadow:0 6px 16px rgba(0,0,0,.35);animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
 .qr img,.qr canvas{display:block;width:96px;height:96px}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+.settings label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-2);text-align:left}
+.settings label.wide{grid-column:1/-1}
+.settings select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--glass-line);background:rgba(0,0,0,.25);color:#fff;font-weight:700;font-size:14px;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#fff 50%),linear-gradient(135deg,#fff 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+.settings select option{color:#111}
 .share{display:flex;gap:8px}
 .share button,.share a{flex:1;text-align:center}
 .wa{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;background:rgba(37,211,102,.85);color:#06281a;border:1px solid rgba(255,255,255,.5);border-radius:16px;padding:14px 12px;font-weight:800}
@@ -280,7 +285,7 @@ form.row input{flex:1;min-width:0;text-align:left}
         <li>One person hosts and shares the PIN or link. Friends join on their own phones. 3 to 12 players.</li>
         <li>Everyone peeks at their card. Crew see the secret word. The imposter only gets the category, the first letter and the length.</li>
         <li>Go round the table. Each person writes a one-word hint; it lands on the table for all to see.</li>
-        <li>Tap a player to vote before the timer runs out. Catch the imposter: crew score 100 each. Imposter survives or guesses the word: imposter scores 200.</li>
+        <li>Tap a player to vote. Catch the imposter: crew score 1 each. Imposter survives or guesses the word: imposter scores 2. The host can switch on a timer in the settings.</li>
       </ol>
     </details>
   </div>
@@ -520,12 +525,12 @@ let wakeLock=null;
 async function keepAwake(){ try{ if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); document.addEventListener('visibilitychange', async()=>{ if(document.visibilityState==='visible' && wakeLock && wakeLock.released){ try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){} } }); } }catch(e){} }
 
 /* ---------- host game logic ---------- */
-function freshState(){ return { phase:'lobby', players:[], chat:[], settings:{ category:'Random', imposters:1, hintRounds:2 }, roundNo:0, deadline:null, word:null, category:null, imposters:[], order:[], round:1, turnIdx:0, hints:[], votes:{}, ready:{}, ejected:null, result:null }; }
+function freshState(){ return { phase:'lobby', players:[], chat:[], settings:{ category:'Random', imposters:1, hintRounds:2, timed:false }, roundNo:0, deadline:null, word:null, category:null, imposters:[], order:[], round:1, turnIdx:0, hints:[], votes:{}, ready:{}, ejected:null, result:null }; }
 function sysChat(text){ state.chat.push({ sys:true, text }); if(state.chat.length>150) state.chat.shift(); }
 function active(){ return state.players.filter(p=>p.connected); }
 function err(pid, text){ if(pid===me.id) toast(text); else if(conns[pid]) conns[pid].send({type:'err', text}); }
 const isWord = t => norm(t)===norm(state.word.bn) || norm(t)===norm(state.word.en);
-function setTimer(sec){ state.deadline = sec ? Date.now()+sec*1000 : null; }
+function setTimer(sec){ state.deadline = (sec && state.settings.timed) ? Date.now()+sec*1000 : null; }
 setInterval(()=>{
   if(mode!=='host'||!state||!state.deadline||Date.now()<state.deadline) return;
   const ph=state.phase; state.deadline=null;
@@ -542,12 +547,13 @@ function handle(pid, m){
   const isHost = pid===me.id;
   switch(m.type){
     case 'chat': { const t=String(m.text||'').trim().slice(0,200); if(!t) return; if(state.phase!=='lobby'&&state.phase!=='result'&&state.word&&isWord(t)){ err(pid,'Careful, that is the secret word. Message not sent.'); return; } state.chat.push({ from:pid, name:p.name, text:t }); if(state.chat.length>150) state.chat.shift(); break; }
-    case 'settings': if(!isHost||state.phase!=='lobby') return; { const s=m.settings||{}; if(CATS.includes(s.category)||s.category==='Random') state.settings.category=s.category; const im=+s.imposters; if(im===1||im===2) state.settings.imposters=im; const hr=+s.hintRounds; if(hr>=1&&hr<=3) state.settings.hintRounds=hr; break; }
+    case 'settings': if(!isHost||state.phase!=='lobby') return; { const s=m.settings||{}; if(CATS.includes(s.category)||s.category==='Random') state.settings.category=s.category; const im=+s.imposters; if(im===1||im===2) state.settings.imposters=im; const hr=+s.hintRounds; if(hr>=1&&hr<=3) state.settings.hintRounds=hr; state.settings.timed=!!s.timed; break; }
     case 'remove': if(!isHost||state.phase!=='lobby') return; { const t=state.players.find(x=>x.id===m.pid); if(t&&!t.isHost&&!t.connected){ state.players=state.players.filter(x=>x.id!==m.pid); sysChat(t.name+' was removed'); } break; }
     case 'start': if(!isHost||(state.phase!=='lobby'&&state.phase!=='result')) return; startRound(); break;
     case 'lobby': if(!isHost||state.phase!=='result') return; state.phase='lobby'; setTimer(0); break;
     case 'resetscores': if(!isHost||(state.phase!=='lobby'&&state.phase!=='result')) return; state.players.forEach(x=>x.score=0); state.roundNo=0; sysChat('Scores reset'); break;
     case 'ready': if(state.phase!=='reveal') return; state.ready[pid]=true; checkAllReady(); break;
+    case 'forceready': if(!isHost||state.phase!=='reveal') return; active().forEach(p=>state.ready[p.id]=true); checkAllReady(); break;
     case 'hint': {
       if(state.phase!=='hints') return;
       if(state.order[state.turnIdx]!==pid){ err(pid,'Not your turn yet.'); return; }
@@ -606,7 +612,7 @@ function tally(){
 function finish(outcome, guessText){
   const crewWin = outcome==='wrong', impWin = !crewWin;
   const gained={};
-  state.players.forEach(p=>{ const imp=state.imposters.includes(p.id); let g=0; if(crewWin && !imp) g=100; if(impWin && imp) g=200; p.score+=g; gained[p.id]=g; });
+  state.players.forEach(p=>{ const imp=state.imposters.includes(p.id); let g=0; if(crewWin && !imp) g=1; if(impWin && imp) g=2; p.score+=g; gained[p.id]=g; });
   state.result = Object.assign(state.result||{counts:{}}, { winner: crewWin?'crew':'imposter', word:state.word, imposters:state.imposters.slice(), ejected:state.ejected, guess:guessText, reason:outcome, gained });
   state.phase='result'; setTimer(0); sysChat(crewWin?'Crew wins the round!':'Imposter wins the round!');
 }
@@ -753,21 +759,28 @@ function renderHand(){
   const h=$('handArea'), ph=view.phase, host=isHost(), meP=pById(view.me);
   let html='';
   if(ph==='lobby'){
-    const n=view.players.filter(p=>p.connected).length;
+    const n=view.players.filter(p=>p.connected).length, s=view.settings;
     const url=location.origin+location.pathname+'#'+view.code;
     const text='প্রতারক-চক্র খেলবা? Join my game. PIN '+view.code+': '+url;
     if(host){
       html=`<div class="glass invite"><div class="lbl">Invite friends · share the PIN or link</div><div class="pin">${esc(view.code)}</div><div class="link" id="shareUrl">${esc(url)}</div>
         <div class="share"><button id="copyBtn">Copy link</button><a class="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>${navigator.share?'<button id="shareBtn">Share…</button>':''}</div></div>
-      <button id="startBtn" class="btn-fill btn-block" ${n<3?'disabled':''}>${n<3?'Start (need '+(3-n)+' more)':(view.roundNo?'Start round '+(view.roundNo+1):'Start game')}</button>`;
+      <button id="startBtn" class="btn-fill btn-block" ${n<3?'disabled':''}>${n<3?'Start (need '+(3-n)+' more)':(view.roundNo?'Start round '+(view.roundNo+1):'Start game')}</button>
+      <div class="glass settings">
+        <label class="wide">Category<select id="setCat"><option ${s.category==='Random'?'selected':''}>Random</option>${CATS.map(c=>`<option ${s.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
+        <label>Imposters<select id="setImp"><option value="1" ${s.imposters===1?'selected':''}>1</option><option value="2" ${s.imposters===2?'selected':''}>2 (6+ players)</option></select></label>
+        <label>Hint rounds<select id="setRounds">${[1,2,3].map(r=>`<option value="${r}" ${s.hintRounds===r?'selected':''}>${r}</option>`).join('')}</select></label>
+        <label class="wide">Pace<select id="setTimed"><option value="0" ${!s.timed?'selected':''}>Relaxed, host moves the game along</option><option value="1" ${s.timed?'selected':''}>Timed, 30 s hints and 45 s votes</option></select></label>
+      </div>`;
       html = html.replace('<div class="glass invite">','<div class="glass invite" id="lobbyInvite">');
-    } else html=`<div class="glass writing"><span class="em">${avatarOf(view.me)}</span><span>You're in! Waiting for <b>${esc(pName(view.hostId))}</b> to start<span class="dots"><i></i><i></i><i></i></span></span></div>`;
+    } else html=`<div class="glass writing"><span class="em">${avatarOf(view.me)}</span><span>You're in! Waiting for <b>${esc(pName(view.hostId))}</b> to start<span class="dots"><i></i><i></i><i></i></span></span></div><div class="hint-line small">${esc(s.category)} · ${s.imposters} imposter${s.imposters>1?'s':''} · ${s.hintRounds} hint round${s.hintRounds>1?'s':''} · ${s.timed?'timed':'relaxed'}</div>`;
   }
   else if(ph==='reveal'){
     const imp=view.myRole==='imposter';
     html = cardOpen
       ? `${myCard()}<button id="readyBtn" class="btn-fill btn-block" ${meP.ready?'disabled':''}>${meP.ready?'Waiting for the others…':'Got it 👍'}</button>`
       : `<div class="hint-line">Make sure nobody is looking.</div><button id="peekBtn" class="btn-fill btn-block">Peek at my card</button>`;
+    if(host) html += `<button id="forceReadyBtn" class="btn-sm" style="align-self:center">Everyone's ready, go</button>`;
   }
   else if(ph==='hints'){
     const myTurn=view.turn===view.me;
@@ -811,9 +824,11 @@ function bind(){
   on('copyBtn','click',()=>{ const t=$('shareUrl').textContent; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast('Link copied')).catch(()=>{ selectText($('shareUrl')); toast('Long-press the link to copy'); }); } else { selectText($('shareUrl')); toast('Long-press the link to copy'); } });
   on('shareBtn','click',()=>{ navigator.share({ title:'প্রতারক-চক্র', text:'Join my game. PIN '+view.code, url:$('shareUrl').textContent }).catch(()=>{}); });
   on('startBtn','click',()=>send({type:'start'}));
+  ['setCat','setImp','setRounds','setTimed'].forEach(id=>on(id,'change',()=>send({type:'settings', settings:{ category:$('setCat').value, imposters:+$('setImp').value, hintRounds:+$('setRounds').value, timed:$('setTimed').value==='1' }})));
   on('lobbyBtn','click',()=>send({type:'lobby'}));
   on('peekBtn','click',()=>{ cardOpen=true; renderHand(); });
   on('readyBtn','click',()=>send({type:'ready'}));
+  on('forceReadyBtn','click',()=>send({type:'forceready'}));
   on('myCard','click',()=>{ wordHidden=!wordHidden; renderHand(); });
   on('hintForm','submit',e=>{ e.preventDefault(); const t=$('hintInput').value.trim(); if(!t) return; send({type:'hint', text:t}); $('hintInput').value=''; });
   on('skipVoteBtn','click',()=>send({type:'skipvote'}));
