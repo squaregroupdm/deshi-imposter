@@ -452,7 +452,7 @@ function acceptJoin(c, m){
 function dropConn(c){
   const pid=c._pid; if(!pid || conns[pid]!==c) return;
   delete conns[pid]; const p=state.players.find(x=>x.id===pid); if(!p) return;
-  p.connected=false; sysChat(p.name+' lost connection');
+  p.connected=false; p.droppedAt=Date.now(); sysChat(p.name+' lost connection');
   if(state.phase==='hints' && state.order[state.turnIdx]===pid) advanceTurn();
   else if(state.phase==='reveal') checkAllReady();
   else if(state.phase==='vote') checkAllVoted();
@@ -473,20 +473,46 @@ function joinRoom(c){
   peer.on('disconnected', ()=>{ if(!leaving) try{ peer.reconnect(); }catch(e){} });
 }
 function connectToHost(c){
+  const prev=conn;
   conn = peer.connect(PREFIX+c, { reliable:true, serialization:'json' });
+  if(prev && prev!==conn){ try{ prev.close(); }catch(e){} }
   conn.on('open', ()=>{ retry=0; conn.send({type:'join', pid:me.id, name:me.name}); if(!view) enterGame(c); setConn(true,'Connected'); });
   conn.on('data', m=>{
     if(!m) return;
     if(m.type==='view'){ view=m.view; render(); }
     else if(m.type==='err'){ if(!view){ $('joinBtn').disabled=false; $('joinBtn').textContent='Join room'; homeErr(m.text); } else toast(m.text); }
   });
-  conn.on('close', ()=>{ if(!leaving) scheduleRetry(c); });
-  conn.on('error', ()=>{ if(!leaving) scheduleRetry(c); });
+  const mine=conn;
+  conn.on('close', ()=>{ if(!leaving && conn===mine) scheduleRetry(c); });
+  conn.on('error', ()=>{ if(!leaving && conn===mine) scheduleRetry(c); });
 }
+let retryT=null;
 function scheduleRetry(c){
-  if(retry>=12){ overlay('Lost the host','The host left or went offline. Ask them to create a new room and share the link again.'); return; }
+  if(retryT) return;
+  if(retry>=40){ overlay('Lost the host','The host left or went offline. Ask them to create a new game and share the link again.'); return; }
   retry++; setConn(false,'Reconnecting…');
-  setTimeout(()=>{ if(leaving) return; if(peer.disconnected){ try{ peer.reconnect(); }catch(e){} } connectToHost(c); }, 2500);
+  retryT=setTimeout(()=>{ retryT=null; if(leaving) return; reconnectClient(c); }, Math.min(6000, 1500+retry*500));
+}
+function reconnectClient(c){
+  try{ if(conn){ conn.removeAllListeners&&conn.removeAllListeners(); conn.close(); } }catch(e){}
+  if(!peer || peer.destroyed){ peer = new Peer({ debug:0 }); peer.on('open', ()=>connectToHost(c)); peer.on('error', e=>{ if(!leaving) scheduleRetry(c); }); peer.on('disconnected', ()=>{ if(!leaving) try{ peer.reconnect(); }catch(e){} }); return; }
+  if(peer.disconnected){ try{ peer.reconnect(); }catch(e){} }
+  connectToHost(c);
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState!=='visible' || leaving) return;
+  if(mode==='client' && code && !(conn && conn.open)){ retry=0; if(retryT){ clearTimeout(retryT); retryT=null; } reconnectClient(code); }
+  if(mode==='host' && peer && (peer.destroyed || peer.disconnected)) hostRevive();
+});
+setInterval(()=>{ if(mode==='client' && conn && conn.open){ try{ conn.send({type:'ping'}); }catch(e){} } }, 4000);
+function hostRevive(){
+  if(!state) return;
+  try{ if(peer && !peer.destroyed){ if(peer.disconnected){ peer.reconnect(); return; } } }catch(e){}
+  peer = new Peer(PREFIX+code, { debug:0 });
+  peer.on('open', ()=>{ setConn(true,'You are the host'); });
+  peer.on('connection', c=>{ c.on('data', m=>{ if(m && m.type==='join') acceptJoin(c, m); else if(c._pid) handle(c._pid, m); }); c.on('close', ()=>dropConn(c)); c.on('error', ()=>dropConn(c)); });
+  peer.on('disconnected', ()=>{ setConn(false,'Reconnecting…'); setTimeout(()=>{ try{ peer.reconnect(); }catch(e){} },1500); });
+  peer.on('error', ()=>{ setConn(false,'Connection trouble'); });
 }
 function send(msg){ if(mode==='host') handle(me.id, msg); else if(conn && conn.open) conn.send(msg); else toast('Not connected yet'); }
 
@@ -535,6 +561,7 @@ function handle(pid, m){
     case 'endvote': if(!isHost||state.phase!=='vote') return; tally(); break;
     case 'guess': { if(state.phase!=='guess'||pid!==state.ejected) return; { const g=String(m.text||'').trim().slice(0,30); finish(isWord(g)?'guessed':'wrong', g); } break; }
     case 'skipguess': if(!isHost||state.phase!=='guess') return; finish('wrong', null); break;
+    case 'ping': return;
     default: return;
   }
   broadcast();
@@ -545,7 +572,8 @@ function startRound(){
   state.category=cat; state.word=parseWord(pick(WORDS[cat]));
   const nImp = Math.min(state.settings.imposters, Math.max(1, ps.length-2));
   state.imposters = shuffle(ps.map(p=>p.id)).slice(0,nImp);
-  state.order = shuffle(ps.map(p=>p.id));
+  const offline = state.players.filter(p=>!p.connected).map(p=>p.id);
+  state.order = shuffle(ps.map(p=>p.id)).concat(shuffle(offline));
   state.round=1; state.turnIdx=0; state.hints=[]; state.votes={}; state.ready={}; state.ejected=null; state.result=null; state.roundNo++;
   state.phase='reveal'; setTimer(TIMES.reveal); sysChat('Round '+state.roundNo+'. Category: '+cat);
 }
@@ -617,7 +645,7 @@ function render(){
   if(view.phase==='hints'&&view.turn===view.me&&lastTurn!==view.turn+view.round){ toast('✍️ Your turn!'); try{ navigator.vibrate&&navigator.vibrate([60,40,60]); }catch(e){} }
   lastTurn=view.phase==='hints'?view.turn+view.round:null;
 }
-let lastTurn=null;
+let lastTurn=null, confirmRemove=null;
 function fitTable(){ const room=document.querySelector('.room'), wrap=$('tableWrap'); if(!room||!wrap) return; const s=Math.max(140, Math.min(room.clientWidth-16, room.clientHeight-76, 560)); wrap.style.width=s+'px'; wrap.style.height=s+'px'; }
 window.addEventListener('resize', fitTable);
 function renderTimer(){
@@ -650,7 +678,8 @@ function renderTop(){
 }
 
 function seatOrder(){
-  const ids=(view.phase==='lobby'||!view.order.length)?view.players.map(p=>p.id):view.order.slice();
+  let ids=(view.phase==='lobby'||!view.order.length)?view.players.map(p=>p.id):view.order.slice();
+  view.players.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); });
   const i=ids.indexOf(view.me); if(i>0){ return ids.slice(i).concat(ids.slice(0,i)); } return ids;
 }
 function renderSeats(){
@@ -670,7 +699,9 @@ function renderSeats(){
     if(view.phase==='vote'&&id!==view.me&&p.connected){ cls.push('votable'); if(view.myVote===id) cls.push('voted'); }
     if(view.phase==='guess'&&id===view.guesser) cls.push('imp');
     if(r&&r.imposters.includes(id)) cls.push('imp');
-    const tag = view.phase==='vote'&&id!==view.me ? 'button' : 'div';
+    const removable = view.phase==='lobby' && isHost() && !p.connected && !p.isHost;
+    if(removable) cls.push('votable');
+    const tag = (view.phase==='vote'&&id!==view.me)||removable ? 'button' : 'div';
     const bub = bubbles[id]&&bubbles[id].until>Date.now() ? `<div class="bub">${esc(bubbles[id].text)}</div>` : '';
     const pen = view.phase==='hints'&&id===view.turn ? '<span class="pen">✍️</span>' : '';
     return `<${tag} class="${cls.join(' ')}" style="left:${x}%;top:${y}%" data-seat="${id}" ${tag==='button'?'type="button"':''}>
@@ -679,7 +710,7 @@ function renderSeats(){
       <div class="sc">${p.score}</div>
     </${tag}>`;
   }).join('');
-  document.querySelectorAll('[data-seat].votable').forEach(b=>b.addEventListener('click',()=>send({type:'vote', target:b.dataset.seat})));
+  document.querySelectorAll('[data-seat].votable').forEach(b=>b.addEventListener('click',()=>{ if(view.phase==='lobby'){ if(confirmRemove===b.dataset.seat){ send({type:'remove', pid:b.dataset.seat}); confirmRemove=null; } else { confirmRemove=b.dataset.seat; toast('Tap again to remove '+pName(b.dataset.seat)); } } else send({type:'vote', target:b.dataset.seat}); }));
 }
 
 function renderTable(){
