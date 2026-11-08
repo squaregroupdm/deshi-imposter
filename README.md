@@ -4,11 +4,11 @@ A Bangladesh-themed multiplayer imposter party game. One HTML file, no server to
 
 **How it works**
 
-1. One person opens the game, types a name and creates a room. They get a 4-letter code and a share link.
-2. Friends open the link, type a name and join. 3 to 12 players.
+1. One person hosts a game. They get a 6-digit game PIN and a share link.
+2. Friends open the link or type the PIN and a nickname. 3 to 12 players. Everyone sits around a table on screen.
 3. Everyone secretly gets the same Bangla word (say, ফুচকা). The imposter only gets the category (Street Food).
-4. Players take turns giving one- or two-word hints, discuss in the built-in chat, then vote.
-5. Catch the imposter and every crew member scores 1. If the imposter survives the vote, or guesses the word after being caught, the imposter scores 2. Scores carry across rounds.
+4. Players take turns putting a one-word hint on the table (30 seconds each), discuss in the built-in chat, then vote (45 seconds).
+5. Catch the imposter and every crew member scores 100. If the imposter survives the vote, or guesses the word after being caught, the imposter scores 200. A leaderboard shows after every round.
 
 **Word bank:** 2,100+ words in 21 categories (street food, deshi dishes, places in Dhaka and Bangladesh, Dhaka life, village life, festivals, cricket, childhood games, and more), each shown in Bangla with the English name under it.
 

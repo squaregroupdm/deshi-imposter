@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Deshi Imposter</title>
+<meta name="description" content="Find the imposter. Bangladesh edition. Play with friends on your own phones.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Montserrat:wght@500;700;800&family=Noto+Sans+Bengali:wght@500;700&display=swap">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+/* Layout: one screen. A round felt table in the middle, players seated around it, hints land as paper slips on the table, one action strip at the bottom. */
+:root{
+  --bg:#46178f;
+  --bg-2:#381273;
+  --fg:#ffffff;
+  --fg-2:#e4dcf5;
+  --fg-3:#bfb2dd;
+  --felt:#2f6b4f;
+  --felt-2:#245640;
+  --rim:#2a0d5c;
+  --rim-2:#1d0941;
+  --paper:#fffdf6;
+  --ink:#1f3a5f;
+  --dark:#25076b;
+  --dark-2:#333;
+  --accent:#26890c;
+  --accent-ink:#fff;
+  --red:#e21b3c;
+  --blue:#1368ce;
+  --yellow:#d89e00;
+  --green:#26890c;
+  --red-soft:#fbe3df;
+  --gold:#ffd23f;
+  --font-body:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-hand:"Caveat","Segoe Print","Comic Sans MS",cursive;
+  --font-bn:"Noto Sans Bengali","DM Sans",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);background-image:radial-gradient(circle at 20% 10%,rgba(255,255,255,.08),transparent 40%),radial-gradient(circle at 85% 90%,rgba(0,0,0,.25),transparent 45%);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:6px;padding:14px 18px;background:#fff;color:var(--dark-2);font-weight:800;font-size:16px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.25)}
+button:active{transform:translateY(2px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.25)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn-fill{background:var(--dark);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-ghost{background:rgba(255,255,255,.14);color:#fff;box-shadow:none}
+.btn-sm{padding:8px 12px;font-size:13px;border-radius:6px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.btn-block{width:100%;display:block}
+input{width:100%;padding:14px 16px;border-radius:6px;border:0;background:#fff;color:var(--dark-2);font-weight:700;text-align:center;font-size:17px}
+input::placeholder{color:#8a8a8a;font-weight:600}
+.bn{font-family:var(--font-bn)}
+.hand{font-family:var(--font-hand)}
+.muted{color:var(--fg-2)}
+.small{font-size:13px}
+.row{display:flex;gap:10px;align-items:center}
+.stack{display:flex;flex-direction:column;gap:12px}
+[hidden]{display:none!important}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2{margin:0}
+
+/* home */
+#home{height:100%;overflow:auto;padding-block:max(28px,env(safe-area-inset-top,0px)) max(28px,env(safe-area-inset-bottom,0px))}
+.home-inner{max-width:400px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.home-inner h1{font-size:44px;line-height:1;font-weight:800;letter-spacing:-.02em;text-align:center}
+.home-inner h1 span{color:var(--gold)}
+.home-inner .lead{color:var(--fg-2);font-size:15px;text-align:center;max-width:34ch;margin:0 auto}
+.card{background:#fff;border-radius:8px;padding:16px;color:var(--dark-2);box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.label{font-size:13px;font-weight:700;color:#666;margin-bottom:6px;text-align:center}
+.code-input{letter-spacing:.25em;font-weight:800;font-size:26px}
+.err{background:var(--red-soft);color:#8f2a25;padding:10px 14px;border-radius:12px;font-size:14px}
+details summary{cursor:pointer;font-weight:700;color:#444}
+details ol{margin:8px 0 0;padding-left:20px;color:#444;font-size:14px;display:flex;flex-direction:column;gap:5px}
+
+/* game screen */
+#game{height:100%;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-block:max(10px,env(safe-area-inset-top,0px)) 6px;flex-shrink:0}
+.top .code{font-weight:800;letter-spacing:.12em;font-size:18px;font-variant-numeric:tabular-nums}
+.top .code small{display:block;font-size:10px;letter-spacing:.1em;color:var(--fg-3);font-weight:700;text-transform:uppercase}
+.top .mid{flex:1;text-align:center;font-size:13px;color:var(--fg-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .mid b{color:var(--fg)}
+.top .led{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:5px;vertical-align:middle}
+.top.off .led{background:var(--red)}
+
+.timer{flex-shrink:0;height:10px;border-radius:5px;background:rgba(0,0,0,.3);overflow:hidden;margin-top:4px}
+.timer i{display:block;height:100%;background:var(--gold);border-radius:5px;transition:width .5s linear}
+.timer.hot i{background:var(--red)}
+.timer-txt{text-align:center;font-size:12px;font-weight:700;color:var(--fg-2);margin-top:2px;flex-shrink:0;min-height:15px}
+
+/* the table */
+.room{flex:1;min-height:200px;position:relative;display:flex;align-items:center;justify-content:center;overflow:visible}
+.table-wrap{position:relative;width:300px;height:300px;max-width:100%;transition:width .25s,height .25s}
+.table{position:absolute;left:21%;top:21%;width:58%;height:58%;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3a7d5e,var(--felt) 55%,var(--felt-2));box-shadow:0 0 0 8px var(--rim),0 0 0 11px var(--rim-2),0 14px 30px rgba(0,0,0,.35),inset 0 0 40px rgba(0,0,0,.25)}
+.table-inner{position:absolute;inset:8%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;color:#fff}
+.table-inner .big{font-size:clamp(22px,7vw,40px);font-weight:800;line-height:1;letter-spacing:.04em}
+.table-inner .sub{font-size:12px;opacity:.9;max-width:20ch;font-weight:600}
+.slips{position:absolute;inset:6%;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:5px;overflow:hidden}
+.slip{background:var(--paper);color:var(--ink);font-family:var(--font-hand);font-size:clamp(15px,4.2vw,21px);font-weight:700;line-height:1.05;padding:5px 9px 4px;border-radius:2px;box-shadow:0 2px 4px rgba(0,0,0,.3);max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative}
+.slip small{display:block;font-family:var(--font-body);font-size:9px;font-weight:700;color:#5a5249;letter-spacing:.04em;text-transform:uppercase;line-height:1.2}
+.slip.r2{background:#fff8d6}
+.slip.r3{background:#e6f3ff}
+.slip.new{animation:drop .35s ease-out}
+@keyframes drop{from{transform:translateY(-14px) scale(1.08);opacity:0}to{opacity:1}}
+.bigpaper{background:var(--paper);color:var(--fg);border-radius:4px;padding:14px 18px;box-shadow:0 4px 10px rgba(0,0,0,.35);transform:rotate(-2deg);max-width:90%}
+.bigpaper .w{font-family:var(--font-bn);font-size:clamp(24px,7vw,36px);font-weight:700;line-height:1.2;color:var(--ink)}
+.bigpaper .e{font-size:13px;font-weight:700;color:var(--fg-2)}
+.bigpaper .t{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3)}
+
+/* seats */
+.seat{position:absolute;width:64px;margin-left:-32px;margin-top:-32px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;background:transparent;box-shadow:none;padding:0;border-radius:0;font-weight:600}
+.seat .av{width:50px;height:50px;border-radius:50%;background:var(--c,var(--blue));display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.3);position:relative;transition:transform .15s}
+.seat.c0{--c:var(--red)}.seat.c1{--c:var(--blue)}.seat.c2{--c:var(--yellow)}.seat.c3{--c:var(--green)}
+.seat.pop{animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.seat .nm{font-size:12px;font-weight:700;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1}
+.seat .sc{font-size:11px;color:var(--fg-3);font-weight:700;font-variant-numeric:tabular-nums}
+.seat.me .av{box-shadow:0 3px 0 rgba(0,0,0,.3),0 0 0 3px #fff}
+.seat.turn .av{box-shadow:0 0 0 4px var(--gold),0 4px 10px rgba(0,0,0,.35);transform:scale(1.12)}
+.seat.off{opacity:.45}
+.seat.off .nm::after{content:" (away)"}
+.seat.done .av::after{content:"✓";position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:50%;background:#fff;color:var(--green);font-size:12px;font-weight:800;display:grid;place-items:center}
+.seat.imp .av{--c:#111;outline:3px dashed var(--red)}
+.seat.imp .nm{color:#ffb3b3}
+.seat.host .nm::before{content:"★ ";color:var(--gold)}
+.seat.votable{cursor:pointer}
+.seat.votable .av{box-shadow:0 3px 0 rgba(0,0,0,.3),0 0 0 3px rgba(255,255,255,.5)}
+.seat.voted .av{box-shadow:0 0 0 4px #fff;transform:scale(1.1)}
+.seat.voted .av::after{content:"✕";position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:50%;background:#fff;color:var(--red);font-size:12px;font-weight:800;display:grid;place-items:center}
+.seat .vc{position:absolute;left:-6px;top:-6px;min-width:20px;height:20px;border-radius:10px;background:#fff;color:var(--dark-2);font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px}
+
+/* bottom strip */
+.hand-area{flex-shrink:0;padding-block:10px max(14px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;max-width:560px;margin:0 auto;width:100%;max-height:48%;overflow:auto}
+#game.result .hand-area{max-height:62%}
+.hint-line{text-align:center;font-size:15px;color:var(--fg-2)}
+.hint-line b{color:#fff}
+.hint-line{color:var(--fg-2);font-weight:600}
+.mycard{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;color:var(--dark-2);border-radius:8px;padding:10px 14px;box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;user-select:none}
+.mycard .w{font-family:var(--font-bn);font-size:20px;font-weight:700;color:var(--ink);line-height:1.2}
+.mycard .w small{display:block;font-family:var(--font-body);font-size:12px;color:#666}
+.mycard.imp .w{color:var(--red);font-family:var(--font-body);font-size:17px}
+.mycard.hidden-word .w{filter:blur(8px)}
+.mycard .lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#777}
+.mycard .eye{font-size:12px;color:var(--dark-2);font-weight:800;flex-shrink:0;background:#eee;border-radius:6px;padding:6px 10px}
+form.row input{flex:1;min-width:0}
+.share{display:flex;gap:8px}
+.share button,.share a{flex:1;text-align:center}
+.wa{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;background:#25d366;color:#07321f;border-radius:6px;padding:14px 12px;font-weight:800;box-shadow:inset 0 -4px 0 rgba(0,0,0,.25)}
+.progress{height:8px;border-radius:4px;background:rgba(0,0,0,.3);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--gold);transition:width .3s}
+.board{display:flex;flex-direction:column;gap:6px}
+.board .r{display:flex;align-items:center;gap:10px;background:#fff;color:var(--dark-2);border-radius:6px;padding:8px 12px;box-shadow:0 3px 0 rgba(0,0,0,.25);font-weight:700;animation:slide .35s ease-out both}
+.board .r:nth-child(2){animation-delay:.08s}.board .r:nth-child(3){animation-delay:.16s}.board .r:nth-child(4){animation-delay:.24s}.board .r:nth-child(5){animation-delay:.32s}
+@keyframes slide{from{transform:translateX(30px);opacity:0}to{opacity:1}}
+.board .rk{width:26px;text-align:center;font-weight:800;font-size:16px}
+.board .dot{width:12px;height:12px;border-radius:50%;background:var(--c,var(--blue));flex-shrink:0}
+.board .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board .pt{font-variant-numeric:tabular-nums;font-weight:800}
+.board .g{color:var(--green);font-size:12px;margin-left:6px}
+.board .r.me{outline:3px solid var(--gold)}
+.board .r.imp .nm::after{content:" · imposter";color:var(--red);font-size:12px}
+
+/* chat */
+.chat-fab{position:relative;width:auto;padding:8px 12px;font-size:13px;border-radius:6px;background:rgba(255,255,255,.14);color:#fff;box-shadow:none}
+.chat-fab .badge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;background:var(--red);color:#fff;font-size:11px;display:grid;place-items:center;padding:0 5px}
+.sheet{position:fixed;inset:auto 0 0 0;height:min(70vh,560px);background:var(--bg-2);border-radius:20px 20px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.2);display:flex;flex-direction:column;z-index:30;transform:translateY(105%);transition:transform .25s ease}
+.sheet.open{transform:none}
+.sheet .sh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 6px}
+.sheet .sh b{font-size:16px;color:#fff}
+.chatlist{flex:1;overflow:auto;padding:8px 16px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:85%;background:#fff;color:var(--dark-2);padding:8px 12px;border-radius:12px 12px 12px 3px;font-size:14px;word-break:break-word;font-weight:500}
+.msg.me{align-self:flex-end;background:var(--gold);border-radius:12px 12px 3px 12px}
+.msg .who{display:block;font-size:11px;font-weight:800;color:var(--blue);margin-bottom:1px}
+.msg.sys{align-self:center;background:transparent;color:var(--fg-3);font-size:12px;text-align:center}
+.chatbox{display:flex;gap:8px;padding:10px 16px max(12px,env(safe-area-inset-bottom,0px))}
+.chatbox input{flex:1;min-width:0;text-align:left;font-size:15px}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:25}
+.toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#fff;color:var(--dark-2);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;white-space:nowrap}
+.toast.show{opacity:1}
+.overlay{position:fixed;inset:0;background:rgba(70,23,143,.96);display:flex;align-items:center;justify-content:center;padding:24px;z-index:40;text-align:center}
+.overlay .box{max-width:340px;display:flex;flex-direction:column;gap:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-height:640px){.seat .av{width:42px;height:42px;font-size:16px}}
+</style>
+</head>
+<body>
+
+<section id="home" class="gutter">
+  <div class="home-inner">
+    <div>
+      <h1>Deshi <span>Imposter</span></h1>
+      <p class="lead">Everyone gets the same secret word. One of you doesn't. Hints on the table, then vote.</p>
+    </div>
+    <div id="homeErr" class="err" hidden></div>
+    <div class="card stack">
+      <div><div class="label">Game PIN</div><input id="codeInput" class="code-input" maxlength="6" placeholder="123456" inputmode="numeric" pattern="[0-9]*" autocomplete="off"></div>
+      <div><div class="label">Nickname</div><input id="nameInput" maxlength="14" placeholder="e.g. Nafis" autocomplete="off"></div>
+      <button id="joinBtn" class="btn-fill btn-block">Enter</button>
+    </div>
+    <button id="createBtn" class="btn-block">Host a new game</button>
+    <details class="card">
+      <summary>How to play</summary>
+      <ol>
+        <li>One person hosts and shares the PIN or link. Friends join on their own phones. 3 to 12 players.</li>
+        <li>Everyone peeks at their card. Crew see the secret word. The imposter only sees the category.</li>
+        <li>Go round the table. Each person writes a one-word hint; it lands on the table for all to see.</li>
+        <li>Tap a player to vote before the timer runs out. Catch the imposter: crew score 100 each. Imposter survives or guesses the word: imposter scores 200.</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<section id="game" hidden>
+  <header class="top gutter" id="topbar">
+    <div class="code"><small>PIN</small><span id="topCode">------</span></div>
+    <div class="mid" id="topMid"><span class="led"></span><span id="connText">Connected</span></div>
+    <button id="chatFab" class="chat-fab" type="button">Chat<span id="unread" class="badge" hidden>0</span></button>
+    <button id="leaveBtn" class="btn-sm btn-ghost">Leave</button>
+  </header>
+  <div class="gutter"><div class="timer" id="timer" hidden><i id="timerBar"></i></div><div class="timer-txt" id="timerTxt"></div></div>
+  <div class="room gutter">
+    <div class="table-wrap" id="tableWrap">
+      <div class="table"><div class="table-inner" id="tableInner"></div><div class="slips" id="slips"></div></div>
+      <div id="seats"></div>
+    </div>
+  </div>
+  <div class="hand-area gutter" id="handArea"></div>
+  <div id="scrim" class="scrim" hidden></div>
+  <div id="sheet" class="sheet">
+    <div class="sh"><b>Table chat</b><button id="chatClose" class="btn-sm" type="button">Close</button></div>
+    <div class="chatlist" id="chatList"></div>
+    <form class="chatbox" id="chatForm" autocomplete="off"><input id="chatInput" maxlength="200" placeholder="Say something…"><button type="submit" class="btn-fill">Send</button></form>
+  </div>
+</section>
+
+<div id="toast" class="toast"></div>
+<div id="overlay" class="overlay" hidden><div class="box">
+  <h2 id="ovTitle"></h2><p id="ovText" class="muted"></p>
+  <button id="ovBtn" class="btn-fill">Back to start</button>
+</div></div>
+
+<script>
+/* ---------- Word bank: "বাংলা|English" ---------- */
+const WORDS = __WORDS__;
+const CATS = Object.keys(WORDS);
+const parseWord = s => { const [bn,en]=s.split('|'); return { bn:bn.trim(), en:(en||bn).trim() }; };
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9ঀ-৿]/g,'');
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const PREFIX = 'deshi-imposter-v3-';
+const genCode = () => String(100000+Math.floor(Math.random()*900000));
+const TIMES = { reveal:45, hint:30, vote:45, guess:30 };
+const store = {
+  get(k){ try{ return sessionStorage.getItem(k) }catch(e){ return null } },
+  set(k,v){ try{ sessionStorage.setItem(k,v) }catch(e){} },
+  del(k){ try{ sessionStorage.removeItem(k) }catch(e){} }
+};
+let toastT; function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),1800); }
+function overlay(title,text){ $('ovTitle').textContent=title; $('ovText').textContent=text; $('overlay').hidden=false; }
+$('ovBtn').onclick = ()=>{ store.del('di.room'); location.hash=''; location.reload(); };
+
+/* ---------- identity ---------- */
+const me = { id: store.get('di.token') || ('p'+Math.random().toString(36).slice(2,10)), name:'' };
+store.set('di.token', me.id);
+
+/* ---------- state ---------- */
+let mode = null;        // 'host' | 'client'
+let peer = null, conn = null, code = null;
+let state = null;       // host only
+const conns = {};       // host only: playerId -> conn
+let view = null;        // what this device renders
+let tab = 'game', unread = 0, lastChatLen = 0, revealOpen = false, roleHidden = false;
+let leaving = false, retry = 0;
+
+/* ---------- home ---------- */
+const hashCode = (location.hash||'').replace('#','');
+if(/^\d{6}$/.test(hashCode)) $('codeInput').value = hashCode;
+$('nameInput').value = store.get('di.name') || '';
+function homeErr(t){ const e=$('homeErr'); e.textContent=t; e.hidden=!t; }
+function getName(){ const n=$('nameInput').value.trim(); if(!n){ homeErr('Enter your name first.'); return null; } me.name=n; store.set('di.name',n); return n; }
+$('createBtn').onclick = ()=>{ if(!getName()) return; homeErr(''); hostRoom(); };
+$('joinBtn').onclick = ()=>{ if(!getName()) return; const c=$('codeInput').value.trim(); if(!/^\d{6}$/.test(c)){ homeErr('The game PIN is 6 digits.'); return; } homeErr(''); joinRoom(c); };
+$('codeInput').addEventListener('input', e=>{ e.target.value=e.target.value.replace(/[^0-9]/g,''); });
+$('leaveBtn').onclick = ()=>{ leaving=true; store.del('di.room'); location.hash=''; location.reload(); };
+
+
+/* ---------- chat sheet ---------- */
+let chatOpen=false;
+function openChat(o){ chatOpen=o; $('sheet').classList.toggle('open',o); $('scrim').hidden=!o; if(o){ unread=0; $('unread').hidden=true; scrollChat(); } }
+$('chatFab').onclick=()=>openChat(true); $('chatClose').onclick=()=>openChat(false); $('scrim').onclick=()=>openChat(false);
+$('chatForm').onsubmit = e=>{ e.preventDefault(); const t=$('chatInput').value.trim(); if(!t) return; send({type:'chat', text:t}); $('chatInput').value=''; };
+function showTab(){ }
+
+/* ---------- networking ---------- */
+function setConn(ok, text){ $('connStatus').classList.toggle('off',!ok); $('connText').textContent=text; }
+function enterGame(c){ code=c; $('topCode').textContent=c; $('home').hidden=true; $('game').hidden=false; location.hash=c; store.set('di.room',c); keepAwake(); }
+
+function hostRoom(){
+  mode='host'; code=genCode();
+  $('createBtn').disabled=true; $('createBtn').textContent='Creating…';
+  peer = new Peer(PREFIX+code, { debug:0 });
+  peer.on('open', ()=>{
+    state = freshState();
+    state.players.push({ id:me.id, name:me.name, connected:true, score:0, isHost:true });
+    enterGame(code); setConn(true,'You are the host'); broadcast();
+    sysChat(me.name+' created the room');
+  });
+  peer.on('connection', c=>{
+    c.on('data', m=>{ if(m && m.type==='join') acceptJoin(c, m); else if(c._pid) handle(c._pid, m); });
+    c.on('close', ()=>dropConn(c)); c.on('error', ()=>dropConn(c));
+  });
+  peer.on('disconnected', ()=>{ setConn(false,'Reconnecting…'); setTimeout(()=>{ try{ peer.reconnect(); }catch(e){} },1500); });
+  peer.on('error', e=>{
+    if(e.type==='unavailable-id'){ peer.destroy(); hostRoom(); return; }
+    if(mode==='host' && !state){ $('createBtn').disabled=false; $('createBtn').textContent='Create a room'; homeErr('Could not reach the game server. Check your internet and try again.'); }
+  });
+}
+function acceptJoin(c, m){
+  const pid = String(m.pid||'').slice(0,20), name = String(m.name||'Player').slice(0,16);
+  if(!pid) return;
+  let p = state.players.find(x=>x.id===pid);
+  if(!p){
+    if(state.players.length>=12){ c.send({type:'err', text:'Game is full (12 players).'}); setTimeout(()=>c.close(),300); return; }
+    if(state.phase!=='lobby'){ c.send({type:'err', text:'A round is in progress. You can join once the host goes back to the lobby.'}); setTimeout(()=>c.close(),300); return; }
+    p = { id:pid, name, connected:true, score:0, isHost:false }; state.players.push(p); sysChat(name+' joined');
+  } else { p.connected=true; p.name=name; sysChat(name+' is back'); }
+  if(conns[pid] && conns[pid]!==c){ try{ conns[pid].close(); }catch(e){} }
+  c._pid=pid; conns[pid]=c; broadcast();
+}
+function dropConn(c){
+  const pid=c._pid; if(!pid || conns[pid]!==c) return;
+  delete conns[pid]; const p=state.players.find(x=>x.id===pid); if(!p) return;
+  p.connected=false; sysChat(p.name+' lost connection');
+  if(state.phase==='hints' && state.order[state.turnIdx]===pid) advanceTurn();
+  else if(state.phase==='reveal') checkAllReady();
+  else if(state.phase==='vote') checkAllVoted();
+  broadcast();
+}
+
+function joinRoom(c){
+  mode='client';
+  $('joinBtn').disabled=true; $('joinBtn').textContent='Joining…';
+  peer = new Peer({ debug:0 });
+  peer.on('open', ()=>connectToHost(c));
+  peer.on('error', e=>{
+    if(e.type==='peer-unavailable'){
+      if(!view){ $('joinBtn').disabled=false; $('joinBtn').textContent='Join room'; homeErr('No game with PIN '+c+'. Check the digits, or ask the host if the game is still open.'); }
+      else scheduleRetry(c);
+    } else if(!view){ $('joinBtn').disabled=false; $('joinBtn').textContent='Join room'; homeErr('Could not reach the game server. Check your internet and try again.'); }
+  });
+  peer.on('disconnected', ()=>{ if(!leaving) try{ peer.reconnect(); }catch(e){} });
+}
+function connectToHost(c){
+  conn = peer.connect(PREFIX+c, { reliable:true, serialization:'json' });
+  conn.on('open', ()=>{ retry=0; conn.send({type:'join', pid:me.id, name:me.name}); if(!view) enterGame(c); setConn(true,'Connected'); });
+  conn.on('data', m=>{
+    if(!m) return;
+    if(m.type==='view'){ view=m.view; render(); }
+    else if(m.type==='err'){ if(!view){ $('joinBtn').disabled=false; $('joinBtn').textContent='Join room'; homeErr(m.text); } else toast(m.text); }
+  });
+  conn.on('close', ()=>{ if(!leaving) scheduleRetry(c); });
+  conn.on('error', ()=>{ if(!leaving) scheduleRetry(c); });
+}
+function scheduleRetry(c){
+  if(retry>=12){ overlay('Lost the host','The host left or went offline. Ask them to create a new room and share the link again.'); return; }
+  retry++; setConn(false,'Reconnecting…');
+  setTimeout(()=>{ if(leaving) return; if(peer.disconnected){ try{ peer.reconnect(); }catch(e){} } connectToHost(c); }, 2500);
+}
+function send(msg){ if(mode==='host') handle(me.id, msg); else if(conn && conn.open) conn.send(msg); else toast('Not connected yet'); }
+
+let wakeLock=null;
+async function keepAwake(){ try{ if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); document.addEventListener('visibilitychange', async()=>{ if(document.visibilityState==='visible' && wakeLock && wakeLock.released){ try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){} } }); } }catch(e){} }
+
+/* ---------- host game logic ---------- */
+function freshState(){ return { phase:'lobby', players:[], chat:[], settings:{ category:'Random', imposters:1, hintRounds:2 }, roundNo:0, deadline:null, word:null, category:null, imposters:[], order:[], round:1, turnIdx:0, hints:[], votes:{}, ready:{}, ejected:null, result:null }; }
+function sysChat(text){ state.chat.push({ sys:true, text }); if(state.chat.length>150) state.chat.shift(); }
+function active(){ return state.players.filter(p=>p.connected); }
+function err(pid, text){ if(pid===me.id) toast(text); else if(conns[pid]) conns[pid].send({type:'err', text}); }
+const isWord = t => norm(t)===norm(state.word.bn) || norm(t)===norm(state.word.en);
+function setTimer(sec){ state.deadline = sec ? Date.now()+sec*1000 : null; }
+setInterval(()=>{
+  if(mode!=='host'||!state||!state.deadline||Date.now()<state.deadline) return;
+  const ph=state.phase; state.deadline=null;
+  if(ph==='reveal'){ active().forEach(p=>state.ready[p.id]=true); checkAllReady(); }
+  else if(ph==='hints'){ const pid=state.order[state.turnIdx]; state.hints.push({ pid, text:'…', round:state.round }); advanceTurn(); }
+  else if(ph==='vote'){ tally(); }
+  else if(ph==='guess'){ finish('wrong', null); }
+  broadcast();
+}, 500);
+
+function handle(pid, m){
+  if(!m || typeof m!=='object') return;
+  const p = state.players.find(x=>x.id===pid); if(!p) return;
+  const isHost = pid===me.id;
+  switch(m.type){
+    case 'chat': { const t=String(m.text||'').trim().slice(0,200); if(!t) return; if(state.phase!=='lobby'&&state.phase!=='result'&&state.word&&isWord(t)){ err(pid,'Careful, that is the secret word. Message not sent.'); return; } state.chat.push({ from:pid, name:p.name, text:t }); if(state.chat.length>150) state.chat.shift(); break; }
+    case 'settings': if(!isHost||state.phase!=='lobby') return; { const s=m.settings||{}; if(CATS.includes(s.category)||s.category==='Random') state.settings.category=s.category; const im=+s.imposters; if(im===1||im===2) state.settings.imposters=im; const hr=+s.hintRounds; if(hr>=1&&hr<=3) state.settings.hintRounds=hr; break; }
+    case 'remove': if(!isHost||state.phase!=='lobby') return; { const t=state.players.find(x=>x.id===m.pid); if(t&&!t.isHost&&!t.connected){ state.players=state.players.filter(x=>x.id!==m.pid); sysChat(t.name+' was removed'); } break; }
+    case 'start': if(!isHost||(state.phase!=='lobby'&&state.phase!=='result')) return; startRound(); break;
+    case 'lobby': if(!isHost||state.phase!=='result') return; state.phase='lobby'; setTimer(0); break;
+    case 'resetscores': if(!isHost||(state.phase!=='lobby'&&state.phase!=='result')) return; state.players.forEach(x=>x.score=0); state.roundNo=0; sysChat('Scores reset'); break;
+    case 'ready': if(state.phase!=='reveal') return; state.ready[pid]=true; checkAllReady(); break;
+    case 'hint': {
+      if(state.phase!=='hints') return;
+      if(state.order[state.turnIdx]!==pid){ err(pid,'Not your turn yet.'); return; }
+      const t=String(m.text||'').trim().slice(0,30); if(!t) return;
+      if(isWord(t)){ err(pid,'You cannot say the word itself.'); return; }
+      if(t.split(/\s+/).length>2){ err(pid,'Keep it to one or two words.'); return; }
+      state.hints.push({ pid, text:t, round:state.round }); advanceTurn(); break;
+    }
+    case 'skipvote': if(!isHost||state.phase!=='hints') return; toVote(); break;
+    case 'vote': { if(state.phase!=='vote') return; if(m.target===pid) return; if(!state.players.find(x=>x.id===m.target)) return; state.votes[pid]=m.target; checkAllVoted(); break; }
+    case 'endvote': if(!isHost||state.phase!=='vote') return; tally(); break;
+    case 'guess': { if(state.phase!=='guess'||pid!==state.ejected) return; { const g=String(m.text||'').trim().slice(0,30); finish(isWord(g)?'guessed':'wrong', g); } break; }
+    case 'skipguess': if(!isHost||state.phase!=='guess') return; finish('wrong', null); break;
+    default: return;
+  }
+  broadcast();
+}
+function startRound(){
+  const ps = active(); if(ps.length<3){ toast('Need at least 3 players'); return; }
+  const cat = state.settings.category==='Random' ? pick(CATS) : state.settings.category;
+  state.category=cat; state.word=parseWord(pick(WORDS[cat]));
+  const nImp = Math.min(state.settings.imposters, Math.max(1, ps.length-2));
+  state.imposters = shuffle(ps.map(p=>p.id)).slice(0,nImp);
+  state.order = shuffle(ps.map(p=>p.id));
+  state.round=1; state.turnIdx=0; state.hints=[]; state.votes={}; state.ready={}; state.ejected=null; state.result=null; state.roundNo++;
+  state.phase='reveal'; setTimer(TIMES.reveal); sysChat('Round '+state.roundNo+'. Category: '+cat);
+}
+function checkAllReady(){ if(active().every(p=>state.ready[p.id])){ state.phase='hints'; setTimer(TIMES.hint); sysChat('Hints begin. '+nameOf(state.order[0])+' goes first.'); } }
+function toVote(){ state.phase='vote'; state.votes={}; setTimer(TIMES.vote); sysChat('Hints are done. Vote!'); }
+function advanceTurn(){
+  state.turnIdx++;
+  if(state.turnIdx>=state.order.length){
+    state.round++; state.turnIdx=0;
+    if(state.round>state.settings.hintRounds){ toVote(); return; }
+  }
+  let guard=0; while(guard++<state.order.length && !isOnline(state.order[state.turnIdx])){ state.turnIdx++; if(state.turnIdx>=state.order.length){ state.round++; state.turnIdx=0; if(state.round>state.settings.hintRounds){ toVote(); return; } } }
+  setTimer(TIMES.hint);
+}
+function isOnline(pid){ const p=state.players.find(x=>x.id===pid); return !!(p&&p.connected); }
+function nameOf(pid){ const p=state.players.find(x=>x.id===pid); return p?p.name:'?'; }
+function checkAllVoted(){ if(active().every(p=>state.votes[p.id])) tally(); }
+function tally(){
+  const counts={}; state.players.forEach(p=>counts[p.id]=0);
+  Object.values(state.votes).forEach(t=>{ if(t in counts) counts[t]++; });
+  const max=Math.max(0,...Object.values(counts)); const top=Object.keys(counts).filter(k=>counts[k]===max&&max>0);
+  state.result={ counts, tie: top.length!==1 };
+  if(top.length===1){
+    state.ejected=top[0];
+    if(state.imposters.includes(state.ejected)){ state.phase='guess'; setTimer(TIMES.guess); sysChat(nameOf(state.ejected)+' was voted out and is the imposter. One guess to steal the win.'); return; }
+    finish('crewmate', null);
+  } else finish('tie', null);
+}
+// outcome: 'tie' or 'crewmate' (imposter survives), 'guessed' (caught but stole the word), 'wrong' (caught, guess failed or skipped)
+function finish(outcome, guessText){
+  const crewWin = outcome==='wrong', impWin = !crewWin;
+  const gained={};
+  state.players.forEach(p=>{ const imp=state.imposters.includes(p.id); let g=0; if(crewWin && !imp) g=100; if(impWin && imp) g=200; p.score+=g; gained[p.id]=g; });
+  state.result = Object.assign(state.result||{counts:{}}, { winner: crewWin?'crew':'imposter', word:state.word, imposters:state.imposters.slice(), ejected:state.ejected, guess:guessText, reason:outcome, gained });
+  state.phase='result'; setTimer(0); sysChat(crewWin?'Crew wins the round!':'Imposter wins the round!');
+}
+function viewFor(pid){
+  const s=state, imp=s.imposters.includes(pid), inGame=s.phase!=='lobby';
+  return {
+    phase:s.phase, code, me:pid, hostId:me.id, roundNo:s.roundNo, deadline:s.deadline, total:TIMES[s.phase==='hints'?'hint':s.phase]||0,
+    players:s.players.map(p=>({ id:p.id, name:p.name, connected:p.connected, score:p.score, isHost:p.isHost, ready:!!s.ready[p.id], voted:!!s.votes[p.id] })),
+    settings:s.settings, chat:s.chat,
+    category: inGame?s.category:null,
+    myRole: inGame?(imp?'imposter':'crew'):null,
+    myWord: inGame&&!imp?s.word:null,
+    round:s.round, hintRounds:s.settings.hintRounds, order:s.order, turn:s.order[s.turnIdx]||null, hints:s.hints,
+    myVote:s.votes[pid]||null, votesIn:Object.keys(s.votes).filter(k=>isOnline(k)).length, activeCount:active().length,
+    guesser: s.phase==='guess'?s.ejected:null,
+    result: s.phase==='result'?s.result:null
+  };
+}
+function broadcast(){
+  state.players.forEach(p=>{ const v=viewFor(p.id); if(p.id===me.id){ view=v; render(); } else if(conns[p.id]&&conns[p.id].open){ try{ conns[p.id].send({type:'view', view:v}); }catch(e){} } });
+}
+
+
+/* ---------- rendering (host and clients) ---------- */
+let lastPhase=null, seenHints=0, wordHidden=false, cardOpen=false;
+let seenPlayers=new Set();
+function render(){
+  if(!view) return;
+  if(view.phase!==lastPhase){ wordHidden=false; cardOpen=false; lastPhase=view.phase; if(view.phase==='reveal') seenHints=0; }
+  renderChat();
+  $('game').classList.toggle('result', view.phase==='result');
+  renderTop(); renderSeats(); renderTable(); renderHand(); renderTimer(); fitTable();
+}
+function fitTable(){ const room=document.querySelector('.room'), wrap=$('tableWrap'); if(!room||!wrap) return; const s=Math.max(140, Math.min(room.clientWidth-16, room.clientHeight-76, 560)); wrap.style.width=s+'px'; wrap.style.height=s+'px'; }
+window.addEventListener('resize', fitTable);
+function renderTimer(){
+  const t=$('timer'), txt=$('timerTxt');
+  if(!view||!view.deadline){ t.hidden=true; txt.textContent=''; return; }
+  const left=Math.max(0,(view.deadline-Date.now())/1000), total=view.total||1;
+  t.hidden=false; $('timerBar').style.width=Math.min(100,100*left/total)+'%'; t.classList.toggle('hot',left<=10);
+  txt.textContent=Math.ceil(left)+'s';
+}
+setInterval(renderTimer, 500);
+const isHost = ()=> view.me===view.hostId;
+const pById = id => view.players.find(x=>x.id===id);
+const pName = id => { const p=pById(id); return p?p.name:'?'; };
+const initial = n => esc((n||'?').trim()[0]||'?').toUpperCase();
+const counts = ()=>{ const c={}; return c; };
+
+function renderTop(){
+  $('topCode').textContent=view.code;
+  const ph=view.phase, m=$('topMid');
+  let t='';
+  if(ph==='lobby') t='Waiting to start';
+  else if(ph==='reveal') t='Round '+view.roundNo+' · peek';
+  else if(ph==='hints') t='Round '+view.roundNo+' · hints '+view.round+'/'+view.hintRounds;
+  else if(ph==='vote') t='Round '+view.roundNo+' · voting';
+  else if(ph==='guess') t='Round '+view.roundNo+' · last chance';
+  else if(ph==='result') t='Round '+view.roundNo+' · result';
+  m.innerHTML='<span class="led"></span>'+esc(t);
+}
+
+function seatOrder(){
+  const ids=(view.phase==='lobby'||!view.order.length)?view.players.map(p=>p.id):view.order.slice();
+  const i=ids.indexOf(view.me); if(i>0){ return ids.slice(i).concat(ids.slice(0,i)); } return ids;
+}
+function renderSeats(){
+  const ids=seatOrder(), n=ids.length, r=view.result;
+  const vc={}; if(r&&r.counts) Object.assign(vc,r.counts);
+  $('seats').innerHTML = ids.map((id,i)=>{
+    const p=pById(id); if(!p) return '';
+    const ang=Math.PI/2 + i*2*Math.PI/n;      // me at the bottom, then clockwise
+    const x=50+46*Math.cos(ang), y=50+46*Math.sin(ang);
+    const ci=view.players.findIndex(x=>x.id===id);
+    const cls=['seat','c'+(ci%4)];
+    if(!seenPlayers.has(id)){ seenPlayers.add(id); if(view.phase==='lobby') cls.push('pop'); }
+    if(id===view.me) cls.push('me'); if(!p.connected) cls.push('off'); if(p.isHost) cls.push('host');
+    if(view.phase==='hints'&&id===view.turn) cls.push('turn');
+    if(view.phase==='reveal'&&p.ready) cls.push('done');
+    if(view.phase==='vote'&&p.voted) cls.push('done');
+    if(view.phase==='vote'&&id!==view.me&&p.connected){ cls.push('votable'); if(view.myVote===id) cls.push('voted'); }
+    if(view.phase==='guess'&&id===view.guesser) cls.push('imp');
+    if(r&&r.imposters.includes(id)) cls.push('imp');
+    const tag = view.phase==='vote'&&id!==view.me ? 'button' : 'div';
+    return `<${tag} class="${cls.join(' ')}" style="left:${x}%;top:${y}%" data-seat="${id}" ${tag==='button'?'type="button"':''}>
+      <div class="av">${initial(p.name)}${r&&vc[id]?`<span class="vc">${vc[id]}</span>`:''}</div>
+      <div class="nm">${esc(p.name)}</div>
+      <div class="sc">${p.score}</div>
+    </${tag}>`;
+  }).join('');
+  document.querySelectorAll('[data-seat].votable').forEach(b=>b.addEventListener('click',()=>send({type:'vote', target:b.dataset.seat})));
+}
+
+function renderTable(){
+  const inner=$('tableInner'), slips=$('slips'); const ph=view.phase;
+  slips.innerHTML=''; inner.innerHTML='';
+  if(ph==='lobby'){
+    const n=view.players.filter(p=>p.connected).length;
+    inner.innerHTML=`<div class="sub">Game PIN</div><div class="big">${esc(view.code)}</div><div class="sub">${n<3?'Need '+(3-n)+' more':n+' players'}</div>`;
+    return;
+  }
+  if(ph==='reveal'){
+    const ready=view.players.filter(p=>p.connected&&p.ready).length;
+    inner.innerHTML=`<div class="big">${esc(view.category)}</div><div class="sub">${ready} of ${view.activeCount} have peeked</div>`;
+    return;
+  }
+  if(ph==='hints'||ph==='vote'||ph==='guess'){
+    const hs=view.hints;
+    if(!hs.length){ inner.innerHTML=`<div class="big">${esc(view.category)}</div><div class="sub">Hints will land here</div>`; }
+    slips.innerHTML=hs.map((h,i)=>`<span class="slip r${h.round} ${i>=seenHints?'new':''}" style="transform:rotate(${((i*37)%9)-4}deg)">${esc(h.text)}<small>${esc(pName(h.pid))}</small></span>`).join('');
+    seenHints=hs.length;
+    return;
+  }
+  if(ph==='result'){
+    const r=view.result;
+    inner.innerHTML=`<div class="bigpaper"><div class="t">${r.winner==='crew'?'Crew wins':'Imposter wins'}</div><div class="w">${esc(r.word.bn)}</div><div class="e">${esc(r.word.en)}</div></div>`;
+  }
+}
+
+function myCard(){
+  const imp=view.myRole==='imposter';
+  return `<div id="myCard" class="mycard ${imp?'imp':''} ${wordHidden?'hidden-word':''}">
+    <div><div class="lbl">${esc(view.category)}</div><div class="w">${imp?'You are the imposter':esc(view.myWord.bn)+'<small>'+esc(view.myWord.en)+'</small>'}</div></div>
+    <span class="eye">${wordHidden?'Show':'Hide'}</span></div>`;
+}
+function renderHand(){
+  const h=$('handArea'), ph=view.phase, host=isHost(), meP=pById(view.me);
+  let html='';
+  if(ph==='lobby'){
+    const n=view.players.filter(p=>p.connected).length;
+    const url=location.origin+location.pathname+'#'+view.code;
+    const text='Join my Deshi Imposter game. PIN '+view.code+': '+url;
+    if(host){
+      html=`<div class="share"><button id="copyBtn">Copy link</button><a class="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>${navigator.share?'<button id="shareBtn">Share</button>':''}</div>
+      <button id="startBtn" class="btn-fill btn-block" ${n<3?'disabled':''}>${view.roundNo?'Start round '+(view.roundNo+1):'Start'}</button>
+      <div class="hint-line small"><span id="shareUrl">${esc(url)}</span></div>`;
+    } else html=`<div class="hint-line">You're in! Waiting for <b>${esc(pName(view.hostId))}</b> to start.</div>`;
+  }
+  else if(ph==='reveal'){
+    const imp=view.myRole==='imposter';
+    html = cardOpen
+      ? `${myCard()}<button id="readyBtn" class="btn-fill btn-block" ${meP.ready?'disabled':''}>${meP.ready?'Waiting for the others…':'Got it'}</button>`
+      : `<div class="hint-line">Make sure nobody is looking.</div><button id="peekBtn" class="btn-fill btn-block">Peek at my card</button>`;
+  }
+  else if(ph==='hints'){
+    const myTurn=view.turn===view.me;
+    html = myCard() + (myTurn
+      ? `<form id="hintForm" class="row" autocomplete="off"><input id="hintInput" maxlength="30" placeholder="Your hint, one word" autofocus><button class="btn-fill" type="submit">Put it down</button></form>`
+      : `<div class="hint-line"><b>${esc(pName(view.turn))}</b> is writing a hint…</div>`)
+      + (host?`<button id="skipVoteBtn" class="btn-sm" style="align-self:center">Skip to voting</button>`:'');
+  }
+  else if(ph==='vote'){
+    html = myCard() + `<div class="hint-line">${view.myVote?'You voted for <b>'+esc(pName(view.myVote))+'</b>. Tap another player to change.':'<b>Tap the player</b> you think is the imposter.'}</div>
+      <div class="progress"><i style="width:${Math.round(100*view.votesIn/Math.max(1,view.activeCount))}%"></i></div>
+      <div class="hint-line small">${view.votesIn} of ${view.activeCount} voted</div>` + (host?`<button id="endVoteBtn" class="btn-sm" style="align-self:center">End voting now</button>`:'');
+  }
+  else if(ph==='guess'){
+    const meG=view.guesser===view.me;
+    html = meG
+      ? `<div class="hint-line">Caught! Guess the word to steal the round.</div><form id="guessForm" class="row" autocomplete="off"><input id="guessInput" maxlength="30" placeholder="Your guess" autofocus><button class="btn-red" type="submit">Guess</button></form>`
+      : `<div class="hint-line"><b>${esc(pName(view.guesser))}</b> is the imposter and gets one guess…</div>` + (host?`<button id="skipGuessBtn" class="btn-sm" style="align-self:center">Skip the guess</button>`:'');
+  }
+  else if(ph==='result'){
+    const r=view.result, names=r.imposters.map(pName).join(' & ');
+    let why='';
+    if(r.reason==='tie') why='Tie vote, nobody was voted out.';
+    else if(r.reason==='crewmate') why=esc(pName(r.ejected))+' was voted out but was innocent.';
+    else if(r.reason==='guessed') why='Caught, but guessed the word.';
+    else why='Caught'+(r.guess?', guessed "'+esc(r.guess)+'". Wrong.':'.');
+    const g=r.gained&&r.gained[view.me];
+    const ranked=view.players.slice().sort((a,b)=>b.score-a.score);
+    const medal=i=>['🥇','🥈','🥉'][i]||(i+1);
+    html=`<div class="hint-line">Imposter: <b>${esc(names)}</b>. ${why}</div>
+      <div class="board">${ranked.map((p,i)=>`<div class="r ${p.id===view.me?'me':''} ${r.imposters.includes(p.id)?'imp':''}" style="--c:var(--${['red','blue','yellow','green'][view.players.indexOf(p)%4]})"><span class="rk">${medal(i)}</span><span class="dot"></span><span class="nm">${esc(p.name)}</span><span class="pt">${p.score}${r.gained&&r.gained[p.id]?'<span class="g">+'+r.gained[p.id]+'</span>':''}</span></div>`).join('')}</div>`
+      + (host?`<div class="row"><button id="startBtn" class="btn-fill" style="flex:1">Next round</button><button id="lobbyBtn">Lobby</button></div>`:`<div class="hint-line small">Waiting for the host to start the next round.</div>`);
+  }
+  const keep={}; ['hintInput','guessInput'].forEach(id=>{ const el=$(id); if(el) keep[id]=el.value; });
+  h.innerHTML=html;
+  Object.keys(keep).forEach(id=>{ const el=$(id); if(el) el.value=keep[id]; });
+  bind();
+}
+function bind(){
+  const on=(id,ev,fn)=>{ const el=$(id); if(el) el.addEventListener(ev,fn); };
+  on('copyBtn','click',()=>{ const t=$('shareUrl').textContent; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast('Link copied')).catch(()=>{ selectText($('shareUrl')); toast('Long-press the link to copy'); }); } else { selectText($('shareUrl')); toast('Long-press the link to copy'); } });
+  on('shareBtn','click',()=>{ navigator.share({ title:'Deshi Imposter', text:'Join my table. Code '+view.code, url:$('shareUrl').textContent }).catch(()=>{}); });
+  on('startBtn','click',()=>send({type:'start'}));
+  on('lobbyBtn','click',()=>send({type:'lobby'}));
+  on('peekBtn','click',()=>{ cardOpen=true; renderHand(); });
+  on('readyBtn','click',()=>send({type:'ready'}));
+  on('myCard','click',()=>{ wordHidden=!wordHidden; renderHand(); });
+  on('hintForm','submit',e=>{ e.preventDefault(); const t=$('hintInput').value.trim(); if(!t) return; send({type:'hint', text:t}); $('hintInput').value=''; });
+  on('skipVoteBtn','click',()=>send({type:'skipvote'}));
+  on('endVoteBtn','click',()=>send({type:'endvote'}));
+  on('guessForm','submit',e=>{ e.preventDefault(); const t=$('guessInput').value.trim(); if(!t) return; send({type:'guess', text:t}); });
+  on('skipGuessBtn','click',()=>send({type:'skipguess'}));
+}
+function selectText(el){ try{ const r=document.createRange(); r.selectNodeContents(el); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }catch(e){} }
+function renderChat(){
+  const list=view.chat||[]; if(list.length===lastChatLen) return;
+  const newOnes=list.slice(lastChatLen).filter(m=>!m.sys&&m.from!==view.me).length;
+  lastChatLen=list.length;
+  $('chatList').innerHTML = list.map(m=> m.sys ? `<div class="msg sys">${esc(m.text)}</div>` : `<div class="msg ${m.from===view.me?'me':''}">${m.from!==view.me?`<span class="who">${esc(m.name)}</span>`:''}${esc(m.text)}</div>`).join('');
+  if(!chatOpen&&newOnes){ unread+=newOnes; $('unread').textContent=unread; $('unread').hidden=false; }
+  scrollChat();
+}
+function scrollChat(){ const c=$('chatList'); if(c) c.scrollTop=c.scrollHeight; }
+</script>
+</body>
+</html>
