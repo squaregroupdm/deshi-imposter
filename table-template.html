@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Montserrat:wght@500;700;800&family=Noto+Sans+Bengali:wght@500;700&display=swap">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 /* Layout: one screen. Glass panels floating over a moving colour field. A glass table in the middle, emoji players around it, paper hints on the table, one action strip at the bottom. */
 :root{
@@ -182,6 +183,12 @@ details ol{margin:8px 0 0;padding-left:20px;color:var(--fg-2);font-size:14px;dis
 .clue{display:inline-flex;gap:6px;flex-wrap:wrap;margin-top:4px}
 .clue span{background:rgba(255,255,255,.2);border:1px solid var(--glass-line);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:800;color:#fff}
 form.row input{flex:1;min-width:0;text-align:left}
+.invite{padding:14px 16px;display:flex;flex-direction:column;gap:10px;text-align:center}
+.invite .lbl{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-2)}
+.invite .pin{font-size:34px;font-weight:800;letter-spacing:.2em;line-height:1;font-variant-numeric:tabular-nums}
+.invite .link{font-size:12px;color:var(--fg-2);word-break:break-all;user-select:all;background:rgba(0,0,0,.25);border-radius:10px;padding:8px 10px}
+.qr{background:#fff;padding:6px;border-radius:10px;display:inline-block;line-height:0;box-shadow:0 6px 16px rgba(0,0,0,.35);animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+.qr img,.qr canvas{display:block;width:96px;height:96px}
 .share{display:flex;gap:8px}
 .share button,.share a{flex:1;text-align:center}
 .wa{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;background:rgba(37,211,102,.85);color:#06281a;border:1px solid rgba(255,255,255,.5);border-radius:16px;padding:14px 12px;font-weight:800}
@@ -631,7 +638,10 @@ function renderTable(){
   slips.innerHTML=''; inner.innerHTML='';
   if(ph==='lobby'){
     const n=view.players.filter(p=>p.connected).length;
-    inner.innerHTML=`<div class="sub">Game PIN</div><div class="big">${esc(view.code)}</div><div class="sub">${n<3?'Need '+(3-n)+' more':n+' players'}</div>`;
+    const url=location.origin+location.pathname+'#'+view.code;
+    const hasQR = typeof QRCode!=='undefined';
+    inner.innerHTML=`${hasQR?'<div class="sub">Scan to join</div><div class="qr" id="qr"></div>':'<div class="sub">Game PIN</div>'}<div class="big" style="font-size:clamp(18px,5.5vw,30px)">${esc(view.code)}</div><div class="sub">${n<3?'Need '+(3-n)+' more':n+' players'}</div>`;
+    if(hasQR){ try{ new QRCode($('qr'),{ text:url, width:96, height:96, correctLevel:QRCode.CorrectLevel.M }); }catch(e){ try{ $('qr').remove(); }catch(_){} } }
     return;
   }
   if(ph==='reveal'){
@@ -667,9 +677,9 @@ function renderHand(){
     const url=location.origin+location.pathname+'#'+view.code;
     const text='প্রতারক-চক্র খেলবা? Join my game. PIN '+view.code+': '+url;
     if(host){
-      html=`<div class="share"><button id="copyBtn">Copy link</button><a class="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>${navigator.share?'<button id="shareBtn">Share</button>':''}</div>
-      <button id="startBtn" class="btn-fill btn-block" ${n<3?'disabled':''}>${view.roundNo?'Start round '+(view.roundNo+1):'Start'}</button>
-      <div class="hint-line small"><span id="shareUrl">${esc(url)}</span></div>`;
+      html=`<div class="glass invite"><div class="lbl">Invite friends · share the PIN or link</div><div class="pin">${esc(view.code)}</div><div class="link" id="shareUrl">${esc(url)}</div>
+        <div class="share"><button id="copyBtn">Copy link</button><a class="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>${navigator.share?'<button id="shareBtn">Share…</button>':''}</div></div>
+      <button id="startBtn" class="btn-fill btn-block" ${n<3?'disabled':''}>${n<3?'Start (need '+(3-n)+' more)':(view.roundNo?'Start round '+(view.roundNo+1):'Start game')}</button>`;
     } else html=`<div class="glass writing"><span class="em">${avatarOf(view.me)}</span><span>You're in! Waiting for <b>${esc(pName(view.hostId))}</b> to start<span class="dots"><i></i><i></i><i></i></span></span></div>`;
   }
   else if(ph==='reveal'){
