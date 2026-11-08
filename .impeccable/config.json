@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "montserrat",
+        "createdAt": "2026-11-08T09:00:20.442Z",
+        "reason": "user asked for a Kahoot-style UI; Montserrat is Kahoot's own face"
+      }
+    ]
+  }
+}
