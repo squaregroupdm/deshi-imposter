@@ -1,4 +1,4 @@
-# Deshi Imposter
+# প্রতারক-চক্র (Deshi Imposter)
 
 A Bangladesh-themed multiplayer imposter party game. One HTML file, no server to run. Everyone plays on their own phone.
 

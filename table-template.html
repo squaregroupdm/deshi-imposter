@@ -3,8 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Deshi Imposter</title>
-<meta name="description" content="Find the imposter. Bangladesh edition. Play with friends on your own phones.">
+<title>প্রতারক-চক্র · Deshi Imposter</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0b2a1f">
+<meta name="description" content="প্রতারক-চক্র (Deshi Imposter): find the imposter at the table. Bangladesh edition, play with friends on your own phones.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Montserrat:wght@500;700;800&family=Noto+Sans+Bengali:wght@500;700&display=swap">
@@ -12,10 +15,10 @@
 <style>
 /* Layout: one screen. Glass panels floating over a moving colour field. A glass table in the middle, emoji players around it, paper hints on the table, one action strip at the bottom. */
 :root{
-  --bg-a:#3a0ca3;
-  --bg-b:#7209b7;
-  --bg-c:#f72585;
-  --bg-d:#4cc9f0;
+  --bg-a:#0b2a1f;
+  --bg-b:#0f4d32;
+  --bg-c:#e3242b;
+  --bg-d:#ffb703;
   --fg:#ffffff;
   --fg-2:rgba(255,255,255,.82);
   --fg-3:rgba(255,255,255,.74);
@@ -27,10 +30,10 @@
   --ink:#1f3a5f;
   --dark:#2b1055;
   --dark-2:#1f1f2e;
-  --red:#ff4d6d;
+  --red:#ff3b47;
   --blue:#4cc9f0;
-  --yellow:#ffd166;
-  --green:#06d6a0;
+  --yellow:#ffc200;
+  --green:#2ec27e;
   --red-soft:rgba(255,77,109,.25);
   --gold:#ffd166;
   --font-body:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -41,11 +44,11 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg-a);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased;overflow:hidden}
-.blobs{position:fixed;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(135deg,var(--bg-a),var(--bg-b) 50%,#560bad)}
+.blobs{position:fixed;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(135deg,#071b14,var(--bg-b) 55%,#12361f)}
 .blobs i{position:absolute;border-radius:50%;filter:blur(60px);opacity:.75;animation:float 18s ease-in-out infinite alternate}
-.blobs i:nth-child(1){width:60vmax;height:60vmax;left:-20vmax;top:-20vmax;background:var(--bg-c)}
-.blobs i:nth-child(2){width:50vmax;height:50vmax;right:-15vmax;top:20vh;background:var(--bg-d);animation-delay:-6s;animation-duration:22s}
-.blobs i:nth-child(3){width:45vmax;height:45vmax;left:10vw;bottom:-20vmax;background:#ffb703;animation-delay:-12s;animation-duration:26s}
+.blobs i:nth-child(1){width:60vmax;height:60vmax;left:-20vmax;top:-20vmax;background:var(--bg-c);opacity:.55}
+.blobs i:nth-child(2){width:50vmax;height:50vmax;right:-15vmax;top:20vh;background:#1b9c5a;animation-delay:-6s;animation-duration:22s}
+.blobs i:nth-child(3){width:45vmax;height:45vmax;left:10vw;bottom:-20vmax;background:var(--bg-d);opacity:.5;animation-delay:-12s;animation-duration:26s}
 @keyframes float{from{transform:translate(0,0) scale(1)}to{transform:translate(8vw,6vh) scale(1.15)}}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;border:1px solid var(--glass-line);border-radius:16px;padding:14px 18px;background:var(--glass-2);color:#fff;font-weight:800;font-size:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 16px rgba(0,0,0,.15);transition:transform .12s cubic-bezier(.2,1.4,.4,1),background .15s}
@@ -53,9 +56,9 @@ button:hover{background:rgba(255,255,255,.3)}
 button:active{transform:scale(.95)}
 button:disabled{opacity:.45;cursor:not-allowed}
 button:focus-visible,input:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
-.btn-fill{background:linear-gradient(135deg,#ff4d6d,#f72585);border-color:rgba(255,255,255,.5);box-shadow:0 8px 20px rgba(0,0,0,.3)}
-.btn-fill:hover{background:linear-gradient(135deg,#ff5f7c,#ff2d95)}
-.btn-red{background:linear-gradient(135deg,#ff4d6d,#c9184a)}
+.btn-fill{background:linear-gradient(135deg,#ff3b47,#c81e26);border-color:rgba(255,255,255,.5);box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.btn-fill:hover{background:linear-gradient(135deg,#ff535e,#d9262f)}
+.btn-red{background:linear-gradient(135deg,#ff3b47,#a3121a)}
 .btn-ghost{background:transparent;box-shadow:none}
 .btn-sm{padding:8px 12px;font-size:13px;border-radius:12px;box-shadow:none}
 .btn-block{width:100%;display:block}
@@ -75,8 +78,9 @@ h1,h2{margin:0}
 /* home */
 #home{height:100%;overflow:auto;padding-block:max(28px,env(safe-area-inset-top,0px)) max(28px,env(safe-area-inset-bottom,0px))}
 .home-inner{max-width:400px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:18px}
-.home-inner h1{font-size:46px;line-height:1;font-weight:800;letter-spacing:-.02em;text-align:center;text-shadow:0 4px 20px rgba(0,0,0,.3)}
+.home-inner h1{font-size:18px;line-height:1;font-weight:800;letter-spacing:.14em;text-transform:uppercase;text-align:center;color:var(--fg-2)}
 .home-inner h1 span{color:var(--yellow)}
+.home-inner .brand{display:flex;flex-direction:column;gap:10px}
 .home-inner .lead{color:var(--fg-2);font-size:15px;text-align:center;max-width:34ch;margin:0 auto}
 .card{padding:18px;color:#fff}
 .card.glass{animation:rise .5s cubic-bezier(.2,1.2,.4,1) both}
@@ -87,8 +91,9 @@ h1,h2{margin:0}
 .err{background:var(--red-soft);border:1px solid rgba(255,77,109,.5);color:#fff;padding:10px 14px;border-radius:14px;font-size:14px}
 details summary{cursor:pointer;font-weight:700;color:#fff}
 details ol{margin:8px 0 0;padding-left:20px;color:var(--fg-2);font-size:14px;display:flex;flex-direction:column;gap:5px}
-.logo-emoji{text-align:center;font-size:54px;line-height:1;animation:wobble 3s ease-in-out infinite}
-@keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.logo-img{display:block;width:min(100%,360px);margin:0 auto;filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));animation:wobble 4s ease-in-out infinite}
+.top .logo-sm{height:34px;width:auto;display:block}
+@keyframes wobble{0%,100%{transform:rotate(-1.5deg) scale(1)}50%{transform:rotate(1.5deg) scale(1.03)}}
 
 /* game screen */
 #game{height:100%;display:flex;flex-direction:column}
@@ -164,7 +169,7 @@ details ol{margin:8px 0 0;padding-left:20px;color:var(--fg-2);font-size:14px;dis
 .dots i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#fff;margin-left:3px;animation:blink 1.2s infinite}
 .dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
 @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
-.yourturn{background:linear-gradient(135deg,rgba(255,209,102,.35),rgba(255,77,109,.35));border-color:var(--yellow);animation:glow 1s ease-in-out infinite alternate}
+.yourturn{background:linear-gradient(135deg,rgba(255,194,0,.35),rgba(255,59,71,.3));border-color:var(--yellow);animation:glow 1s ease-in-out infinite alternate}
 @keyframes glow{from{box-shadow:0 0 0 0 rgba(255,209,102,.5)}to{box-shadow:0 0 0 8px rgba(255,209,102,0)}}
 .mycard{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;color:#fff}
 .mycard .w{font-family:var(--font-bn);font-size:20px;font-weight:700;color:#fff;line-height:1.2}
@@ -193,12 +198,12 @@ form.row input{flex:1;min-width:0;text-align:left}
 .board .g{color:var(--green);font-size:12px;margin-left:6px;animation:pop .5s .5s cubic-bezier(.2,1.6,.4,1) both}
 .board .r.me{border-color:var(--yellow);background:rgba(255,209,102,.18)}
 .board .r.imp .nm::after{content:" · imposter";color:#ffb3c1;font-size:12px}
-.board .r:first-child{background:linear-gradient(135deg,rgba(255,209,102,.35),rgba(255,255,255,.12))}
+.board .r:first-child{background:linear-gradient(135deg,rgba(255,194,0,.35),rgba(255,255,255,.12))}
 
 /* chat: Messenger-style sheet */
 .chat-fab{position:relative;width:auto;padding:8px 12px;font-size:13px;border-radius:12px;box-shadow:none}
 .chat-fab .badge{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:var(--red);color:#fff;font-size:11px;display:grid;place-items:center;padding:0 5px;animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
-.sheet{position:fixed;inset:auto 0 0 0;height:min(72vh,580px);background:rgba(30,10,70,.65);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--glass-line);border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;z-index:30;transform:translateY(105%);transition:transform .3s cubic-bezier(.2,1,.4,1)}
+.sheet{position:fixed;inset:auto 0 0 0;height:min(72vh,580px);background:rgba(6,30,22,.7);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--glass-line);border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;z-index:30;transform:translateY(105%);transition:transform .3s cubic-bezier(.2,1,.4,1)}
 .sheet.open{transform:none}
 .sheet .sh{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 6px}
 .sheet .sh b{font-size:16px;color:#fff}
@@ -226,7 +231,7 @@ form.row input{flex:1;min-width:0;text-align:left}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:25}
 .toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#fff;color:var(--dark-2);padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.3)}
 .toast.show{opacity:1}
-.overlay{position:fixed;inset:0;background:rgba(40,10,90,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:40;text-align:center}
+.overlay{position:fixed;inset:0;background:rgba(7,27,20,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:40;text-align:center}
 .overlay .box{max-width:340px;display:flex;flex-direction:column;gap:12px;padding:24px}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:35}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -239,8 +244,8 @@ form.row input{flex:1;min-width:0;text-align:left}
 
 <section id="home" class="gutter">
   <div class="home-inner">
-    <div>
-      <div class="logo-emoji">🕵️</div>
+    <div class="brand">
+      <img class="logo-img" src="logo.png" alt="প্রতারক-চক্র" width="900" height="412">
       <h1>Deshi <span>Imposter</span></h1>
       <p class="lead">Everyone gets the same secret word. One of you doesn't. Hints on the table, then vote.</p>
     </div>
@@ -265,10 +270,11 @@ form.row input{flex:1;min-width:0;text-align:left}
 
 <section id="game" hidden>
   <header class="top gutter" id="topbar">
+    <img class="logo-sm" src="logo.png" alt="প্রতারক-চক্র">
     <div class="code"><small>PIN</small><span id="topCode">------</span></div>
     <div class="mid" id="topMid"><span class="led"></span><span id="connText">Connected</span></div>
     <button id="chatFab" class="chat-fab" type="button">Chat<span id="unread" class="badge" hidden>0</span></button>
-    <button id="leaveBtn" class="btn-sm btn-ghost">Leave</button>
+    <button id="leaveBtn" class="btn-sm btn-ghost" aria-label="Leave game" title="Leave">✕</button>
   </header>
   <div class="gutter"><div class="timer" id="timer" hidden><i id="timerBar"></i></div><div class="timer-txt" id="timerTxt"></div></div>
   <div class="room gutter">
@@ -659,7 +665,7 @@ function renderHand(){
   if(ph==='lobby'){
     const n=view.players.filter(p=>p.connected).length;
     const url=location.origin+location.pathname+'#'+view.code;
-    const text='Join my Deshi Imposter game. PIN '+view.code+': '+url;
+    const text='প্রতারক-চক্র খেলবা? Join my game. PIN '+view.code+': '+url;
     if(host){
       html=`<div class="share"><button id="copyBtn">Copy link</button><a class="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>${navigator.share?'<button id="shareBtn">Share</button>':''}</div>
       <button id="startBtn" class="btn-fill btn-block" ${n<3?'disabled':''}>${view.roundNo?'Start round '+(view.roundNo+1):'Start'}</button>
@@ -712,7 +718,7 @@ function renderHand(){
 function bind(){
   const on=(id,ev,fn)=>{ const el=$(id); if(el) el.addEventListener(ev,fn); };
   on('copyBtn','click',()=>{ const t=$('shareUrl').textContent; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast('Link copied')).catch(()=>{ selectText($('shareUrl')); toast('Long-press the link to copy'); }); } else { selectText($('shareUrl')); toast('Long-press the link to copy'); } });
-  on('shareBtn','click',()=>{ navigator.share({ title:'Deshi Imposter', text:'Join my table. Code '+view.code, url:$('shareUrl').textContent }).catch(()=>{}); });
+  on('shareBtn','click',()=>{ navigator.share({ title:'প্রতারক-চক্র', text:'Join my game. PIN '+view.code, url:$('shareUrl').textContent }).catch(()=>{}); });
   on('startBtn','click',()=>send({type:'start'}));
   on('lobbyBtn','click',()=>send({type:'lobby'}));
   on('peekBtn','click',()=>{ cardOpen=true; renderHand(); });
